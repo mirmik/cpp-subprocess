@@ -19,6 +19,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <signal.h>
+
 namespace subprocess
 {
 
@@ -86,10 +88,13 @@ public:
     {
         in_filebuf->close();
     }
-    
+
+    void kill(int signum) 
+    {
+        ::kill(pid, signum);
+    }
     
 private:
-    
     enum ends_of_pipe { READ = 0, WRITE = 1 };
 
     struct raii_char_str
