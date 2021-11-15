@@ -93,7 +93,12 @@ public:
     {
         ::kill(pid, signum);
     }
-    
+
+    void terminate() 
+    {
+        kill(SIGTERM);
+    }
+
 private:
     enum ends_of_pipe { READ = 0, WRITE = 1 };
 
