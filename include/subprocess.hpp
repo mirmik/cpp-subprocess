@@ -26,7 +26,7 @@ namespace subprocess
 
     class popen
     {
-        pid_t pid = 0;
+        pid_t _pid = 0;
 
         std::array<int,2> in_pipe = {0,0};
         std::array<int,2> out_pipe = {0,0};
@@ -44,7 +44,7 @@ namespace subprocess
         popen() = default;
         popen(const popen & oth) = delete;
         popen(popen && oth)  :
-            pid(oth.pid),
+            _pid(oth._pid),
             in_pipe(oth.in_pipe),
             out_pipe(oth.out_pipe),
             err_pipe(oth.err_pipe),
@@ -66,7 +66,7 @@ namespace subprocess
         popen& operator=(const popen & oth) = delete;
         popen& operator=(popen && oth)
         {
-            pid = oth.pid;
+            _pid = oth._pid;
             in_pipe = oth.in_pipe;
             out_pipe = oth.out_pipe;
             err_pipe = oth.err_pipe;
@@ -138,7 +138,7 @@ namespace subprocess
         int wait()
         {
             int status = 0;
-            waitpid(pid, &status, 0);
+            waitpid(_pid, &status, 0);
             return WEXITSTATUS(status);
         };
 
@@ -149,7 +149,7 @@ namespace subprocess
 
         void kill(int signum)
         {
-            ::kill(pid, signum);
+            ::kill(_pid, signum);
         }
 
         void terminate()
@@ -179,9 +179,9 @@ namespace subprocess
         {
             argv.insert(argv.begin(), cmd);
 
-            pid = ::fork();
+            _pid = ::fork();
 
-            if (pid == 0) child(argv);
+            if (_pid == 0) child(argv);
 
             ::close(in_pipe[READ]);
             ::close(out_pipe[WRITE]);
@@ -226,6 +226,11 @@ namespace subprocess
                 std::perror("subprocess: execvp() failed");
                 return;
             }
+        }
+
+        int pid() const
+        {
+            return _pid;
         }
     };
 } // namespace: subprocess
