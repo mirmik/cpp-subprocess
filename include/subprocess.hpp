@@ -26,34 +26,73 @@ namespace subprocess
 
     class popen
     {
-        pid_t pid;
+        pid_t pid = 0;
 
-        int in_pipe[2];
-        int out_pipe[2];
-        int err_pipe[2];
+        std::array<int,2> in_pipe = {0,0};
+        std::array<int,2> out_pipe = {0,0};
+        std::array<int,2> err_pipe = {0,0};
 
-        __gnu_cxx::stdio_filebuf<char>* in_filebuf;
-        __gnu_cxx::stdio_filebuf<char>* out_filebuf;
-        __gnu_cxx::stdio_filebuf<char>* err_filebuf;
+        __gnu_cxx::stdio_filebuf<char>* in_filebuf = nullptr;
+        __gnu_cxx::stdio_filebuf<char>* out_filebuf = nullptr;
+        __gnu_cxx::stdio_filebuf<char>* err_filebuf = nullptr;
 
-        std::ostream* in_stream;
-        std::istream* out_stream;
-        std::istream* err_stream;
+        std::ostream* in_stream = nullptr;
+        std::istream* out_stream = nullptr;
+        std::istream* err_stream = nullptr;
 
     public:
         popen() = default;
         popen(const popen & oth) = delete;
-        popen(popen && oth) = default;
+        popen(popen && oth)  :
+            pid(oth.pid),
+            in_pipe(oth.in_pipe),
+            out_pipe(oth.out_pipe),
+            err_pipe(oth.err_pipe),
+            in_filebuf(oth.in_filebuf),
+            out_filebuf(oth.out_filebuf),
+            err_filebuf(oth.err_filebuf),
+            in_stream(oth.in_stream),
+            out_stream(oth.out_stream),
+            err_stream(oth.err_stream)
+        {
+            oth.in_filebuf = nullptr;
+            oth.out_filebuf = nullptr;
+            oth.err_filebuf = nullptr;
+            oth.in_stream  = nullptr;
+            oth.out_stream  = nullptr;
+            oth.err_stream  = nullptr;
+        }
 
         popen& operator=(const popen & oth) = delete;
-        popen& operator=(popen && oth) = default;
-
-        popen(const std::string& cmd, std::vector<std::string> argv)
-            : in_filebuf(nullptr), out_filebuf(nullptr), err_filebuf(nullptr), in_stream(nullptr), out_stream(nullptr), err_stream(nullptr)
+        popen& operator=(popen && oth)
         {
-            if (pipe(in_pipe)  == -1 ||
-                    pipe(out_pipe) == -1 ||
-                    pipe(err_pipe) == -1 )
+            pid = oth.pid;
+            in_pipe = oth.in_pipe;
+            out_pipe = oth.out_pipe;
+            err_pipe = oth.err_pipe;
+            
+            in_filebuf = oth.in_filebuf;
+            out_filebuf = oth.out_filebuf;
+            err_filebuf = oth.err_filebuf;
+            in_stream = oth.in_stream;
+            out_stream = oth.out_stream;
+            err_stream = oth.err_stream;
+
+            oth.in_filebuf = nullptr;
+            oth.out_filebuf = nullptr;
+            oth.err_filebuf = nullptr;
+            oth.in_stream  = nullptr;
+            oth.out_stream  = nullptr;
+            oth.err_stream  = nullptr;
+
+            return *this;
+        }
+
+        popen(const std::string& cmd, std::vector<std::string> argv)        
+        {
+            if (pipe_arr(in_pipe)  == -1 ||
+                    pipe_arr(out_pipe) == -1 ||
+                    pipe_arr(err_pipe) == -1 )
             {
                 throw std::system_error(errno, std::system_category());
             }
@@ -62,14 +101,13 @@ namespace subprocess
         }
 
         popen(const std::string& cmd, std::vector<std::string> argv, std::ostream& pipe_stdout)
-            : in_filebuf(nullptr), out_filebuf(nullptr), err_filebuf(nullptr), in_stream(nullptr), out_stream(nullptr), err_stream(nullptr)
         {
             auto filebuf = dynamic_cast<__gnu_cxx::stdio_filebuf<char>*>(pipe_stdout.rdbuf());
             out_pipe[READ]  = -1;
             out_pipe[WRITE] = filebuf->fd();
 
-            if (pipe(in_pipe) == -1 ||
-                    pipe(err_pipe) == -1 )
+            if (pipe_arr(in_pipe) == -1 ||
+                    pipe_arr(err_pipe) == -1 )
             {
                 throw std::system_error(errno, std::system_category());
             }
@@ -121,6 +159,14 @@ namespace subprocess
 
     private:
         enum ends_of_pipe { READ = 0, WRITE = 1 };
+
+        int pipe_arr(std::array<int,2>& arr) 
+        {
+            int _arr[2];
+            int sts = pipe(_arr);
+            arr = std::array<int,2>({_arr[0], _arr[1]});
+            return sts;
+        }
 
         struct raii_char_str
         {
