@@ -157,6 +157,10 @@ namespace subprocess
             kill(SIGTERM);
         }
 
+        int pid() const
+        {
+            return _pid;
+        }
     private:
         enum ends_of_pipe { READ = 0, WRITE = 1 };
 
@@ -226,11 +230,6 @@ namespace subprocess
                 std::perror("subprocess: execvp() failed");
                 return;
             }
-        }
-
-        int pid() const
-        {
-            return _pid;
         }
     };
 } // namespace: subprocess
